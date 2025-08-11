@@ -7,6 +7,9 @@ const morgan = require('morgan'); // <-- Importa o Morgan
 const connectDB = require('./config/db'); // <-- Importa nossa função de conexão
 const { configureCloudinary } = require('./config/cloudinaryConfig');
 
+// IMPORTAR ROTAS
+const authRoutes = require('./api/routes/authRoutes');
+
 // 2. CONFIGURAÇÃO INICIAL
 dotenv.config({ path: './.env', quiet: true }); // Carrega as variáveis de ambiente
 
@@ -27,6 +30,8 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // 4. ROTAS (Placeholder)
+app.use('/api/v1/auth', authRoutes);
+
 app.get('/', (req, res) => {
     res.status(200).json({
         status: 'success',
