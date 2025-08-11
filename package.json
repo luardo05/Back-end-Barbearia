@@ -1,0 +1,38 @@
+{
+  "name": "barbearia-app",
+  "version": "0.0.1",
+  "description": "um app de agendamento para cabelereiro.",
+  "keywords": [
+    "barbearia",
+    "agendamento",
+    "api"
+  ],
+  "homepage": "https://github.com/luardo05/Back-end-Barbearia#readme",
+  "bugs": {
+    "url": "https://github.com/luardo05/Back-end-Barbearia/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luardo05/Back-end-Barbearia.git"
+  },
+  "license": "MIT",
+  "author": "Richardfcs, luardo05, thayzavi",
+  "type": "commonjs",
+  "main": "app.js",
+  "scripts": {
+    "test": "test",
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.17.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
