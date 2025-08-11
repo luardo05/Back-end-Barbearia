@@ -2,6 +2,8 @@
 const express = require('express'); //para o servidor
 const dotenv = require('dotenv'); // para usar as variáveis de ambiente
 const cors = require('cors'); // para evitar erro de cors
+const helmet = require('helmet'); // <-- Importa o Helmet
+const morgan = require('morgan'); // <-- Importa o Morgan
 const connectDB = require('./config/db'); // <-- Importa nossa função de conexão
 
 // 2. CONFIGURAÇÃO INICIAL
@@ -12,8 +14,14 @@ connectDB(); // <-- Executa a conexão com o banco de dados
 const app = express(); // Instancia o aplicativo Express
 
 // 3. MIDDLEWARES
+app.use(helmet());
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10kb' })); // Limita o tamanho do corpo da requisição para 10kb
+
+// Middleware de Logging: só roda em ambiente de desenvolvimento
+if (process.env.NODE_ENV === 'development') {
+    app.use(morgan('dev'));
+}
 
 // 4. ROTAS (Placeholder)
 app.get('/', (req, res) => {
