@@ -1,7 +1,7 @@
 // 1. IMPORTAÇÕES
-const express = require('express');
-const dotenv = require('dotenv');
-const cors = require('cors');
+const express = require('express'); //para o servidor
+const dotenv = require('dotenv'); // para usar as variáveis de ambiente
+const cors = require('cors'); // para evitar erro de cors
 const connectDB = require('./config/db'); // <-- Importa nossa função de conexão
 
 // 2. CONFIGURAÇÃO INICIAL
