@@ -3,7 +3,7 @@ const authService = require('../services/authService');
 exports.register = async (req, res) => {
     try {
         const newUser = await authService.registerUser(req.body);
-
+        
         // Geramos um token para o usuário recém-registrado para que ele não precise fazer login novamente
         const token = authService.signToken(newUser._id);
 
