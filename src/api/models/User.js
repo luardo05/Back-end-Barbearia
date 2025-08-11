@@ -31,13 +31,17 @@ const UserSchema = new mongoose.Schema({
         type: String,
         enum: ['cliente', 'admin'], // Apenas estes dois valores são permitidos
         default: 'cliente'
+    },
+    fotoUrl: {
+        type: String,
+        default: 'url_da_imagem_padrao_aqui' // Link para uma imagem de avatar padrão
     }
 }, {
     timestamps: true // Adiciona os campos createdAt e updatedAt automaticamente
 });
 
 // Middleware (hook) do Mongoose para criptografar a senha ANTES de salvar
-UserSchema.pre('save', async function(next) {
+UserSchema.pre('save', async function (next) {
     // Roda este código apenas se a senha foi modificada (ou é nova)
     if (!this.isModified('senha')) return next();
 

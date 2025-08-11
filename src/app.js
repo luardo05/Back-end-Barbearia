@@ -5,11 +5,14 @@ const cors = require('cors'); // para evitar erro de cors
 const helmet = require('helmet'); // <-- Importa o Helmet
 const morgan = require('morgan'); // <-- Importa o Morgan
 const connectDB = require('./config/db'); // <-- Importa nossa função de conexão
+const { configureCloudinary } = require('./config/cloudinaryConfig');
 
 // 2. CONFIGURAÇÃO INICIAL
 dotenv.config({ path: './.env', quiet: true }); // Carrega as variáveis de ambiente
 
 connectDB(); // <-- Executa a conexão com o banco de dados
+
+configureCloudinary(); 
 
 const app = express(); // Instancia o aplicativo Express
 

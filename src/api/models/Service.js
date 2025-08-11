@@ -18,6 +18,10 @@ const ServiceSchema = new mongoose.Schema({
     duracaoEmMinutos: { // Essencial para a lógica do calendário
         type: Number,
         required: [true, 'A duração é obrigatória.']
+    },
+    imagemUrl: {
+        type: String,
+        default: 'url_da_imagem_de_servico_padrao_aqui'
     }
 }, {
     timestamps: true
