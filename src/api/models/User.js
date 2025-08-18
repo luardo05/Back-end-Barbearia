@@ -25,7 +25,7 @@ const UserSchema = new mongoose.Schema({
     },
     numeroTelefone: {
         type: String,
-        required: [true, 'O número de telefone é obrigatório.']
+        // required: [true, 'O número de telefone é obrigatório.']
     },
     role: {
         type: String,
@@ -50,4 +50,4 @@ UserSchema.pre('save', async function (next) {
     next();
 });
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.model('User', UserSchema);
