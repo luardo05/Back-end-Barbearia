@@ -11,6 +11,7 @@ const { configureCloudinary } = require('./config/cloudinaryConfig');
 const authRoutes = require('./api/routes/authRoutes');
 const userRoutes = require('./api/routes/userRoutes');
 const serviceRoutes = require('./api/routes/serviceRoutes');
+const appointmentRoutes = require('./api/routes/appointmentRoutes');
 
 // 2. CONFIGURAÇÃO INICIAL
 dotenv.config({ path: './.env', quiet: true }); // Carrega as variáveis de ambiente
@@ -34,7 +35,8 @@ if (process.env.NODE_ENV === 'development') {
 // 4. ROTAS (Placeholder)
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/user', userRoutes);
-app.use('/api/v1/services', serviceRoutes); 
+app.use('/api/v1/services', serviceRoutes);
+app.use('/api/v1/appointments', appointmentRoutes); 
 
 app.get('/', (req, res) => {
     res.status(200).json({
