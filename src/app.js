@@ -14,14 +14,14 @@ const serviceRoutes = require('./api/routes/serviceRoutes');
 const appointmentRoutes = require('./api/routes/appointmentRoutes');
 const transactionRoutes = require('./api/routes/transactionRoutes');
 const notificationRoutes = require('./api/routes/notificationRoutes');
-const dashboardRoutes = require('./api/routes/dashboardRoutes'); 
+const dashboardRoutes = require('./api/routes/dashboardRoutes');
 
 // 2. CONFIGURAÇÃO INICIAL
 dotenv.config({ path: './.env', quiet: true }); // Carrega as variáveis de ambiente
 
 connectDB(); // <-- Executa a conexão com o banco de dados
 
-configureCloudinary(); 
+configureCloudinary();
 
 const app = express(); // Instancia o aplicativo Express
 
@@ -42,7 +42,7 @@ app.use('/api/v1/services', serviceRoutes);
 app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/transactions', transactionRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
-app.use('/api/v1/dashboard', dashboardRoutes); 
+app.use('/api/v1/dashboard', dashboardRoutes);
 
 app.get('/', (req, res) => {
     res.status(200).json({
@@ -58,4 +58,4 @@ app.listen(port, () => {
     console.log(`🚀 Servidor rodando na porta ${port}...`);
 });
 
-module.exports = app;
+module.exports = app;
