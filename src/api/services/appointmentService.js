@@ -1,6 +1,6 @@
 const Appointment = require('../models/Appointment');
 const Service = require('../models/Service');
-const Notification = require('../models/Notification'); // Usaremos para notificar o ADM
+const notificationService = require('./notificationService');// Usaremos para notificar o ADM
 
 // Lógica para criar um agendamento
 const bookAppointment = async (clienteId, servicoId, data) => {
@@ -33,10 +33,13 @@ const bookAppointment = async (clienteId, servicoId, data) => {
         data: startTime,
     });
 
-    // 4. (Opcional, mas recomendado) Criar uma notificação para o admin
-    // Esta lógica pode ser mais complexa (ex: buscar todos os admins)
-    // Por agora, vamos assumir que temos um ID de admin fixo ou uma lógica para encontrá-lo
-    // await Notification.create({ destinatario: 'ID_DO_ADMIN', mensagem: 'Novo agendamento recebido.' });
+    // 4. Criar uma notificação para os administradores usando nosso serviço centralizado
+    // Esta é a linha que você vai "descomentar" e substituir
+    const clientUser = await User.findById(clienteId).select('nome'); // Busca o nome do cliente
+    const clientName = clientUser ? clientUser.nome : 'Um cliente';
+    await notificationService.createNotificationForAdmins(
+        `Novo agendamento recebido de ${clientName} para o serviço "${service.nome}".`
+    );
 
     return newAppointment;
 };
