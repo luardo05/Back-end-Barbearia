@@ -13,6 +13,7 @@ const userRoutes = require('./api/routes/userRoutes');
 const serviceRoutes = require('./api/routes/serviceRoutes');
 const appointmentRoutes = require('./api/routes/appointmentRoutes');
 const transactionRoutes = require('./api/routes/transactionRoutes');
+const notificationRoutes = require('./api/routes/notificationRoutes'); 
 
 // 2. CONFIGURAÇÃO INICIAL
 dotenv.config({ path: './.env', quiet: true }); // Carrega as variáveis de ambiente
@@ -38,7 +39,8 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/services', serviceRoutes);
 app.use('/api/v1/appointments', appointmentRoutes);
-app.use('/api/v1/transactions', transactionRoutes); 
+app.use('/api/v1/transactions', transactionRoutes);
+app.use('/api/v1/notifications', notificationRoutes); 
 
 app.get('/', (req, res) => {
     res.status(200).json({
