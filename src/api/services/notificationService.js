@@ -33,3 +33,34 @@ exports.createNotificationForAdmins = async (mensagem) => {
         // Em um sistema de produção, você poderia logar este erro em um serviço de monitoramento.
     }
 };
+
+/**
+ * Busca todas as notificações de um usuário específico, ordenadas da mais recente para a mais antiga.
+ * @param {string} userId - O ID do usuário destinatário.
+ * @returns {Promise<Array>} Um array de notificações.
+ */
+exports.getNotificationsForUser = async (userId) => {
+    return await Notification.find({ destinatario: userId }).sort({ createdAt: -1 });
+};
+
+/**
+ * Marca uma notificação específica como lida, garantindo que o usuário seja o dono da notificação.
+ * @param {string} notificationId - O ID da notificação a ser marcada.
+ * @param {string} userId - O ID do usuário que está fazendo a requisição.
+ * @returns {Promise<Object>} A notificação atualizada.
+ */
+exports.markAsRead = async (notificationId, userId) => {
+    // A condição { destinatario: userId } é uma camada de segurança crucial.
+    // Ela garante que um usuário não possa marcar a notificação de outro como lida.
+    const notification = await Notification.findOneAndUpdate(
+        { _id: notificationId, destinatario: userId },
+        { lida: true },
+        { new: true }
+    );
+
+    if (!notification) {
+        throw new Error('Notificação não encontrada ou você não tem permissão para modificá-la.');
+    }
+
+    return notification;
+};
