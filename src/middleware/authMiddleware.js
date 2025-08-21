@@ -30,3 +30,17 @@ exports.protect = async (req, res, next) => {
         return res.status(401).json({ status: 'fail', message: 'Token inválido ou expirado.' });
     }
 };
+
+// Middleware para restringir o acesso a certos papéis (roles)
+exports.restrictTo = (...roles) => {
+    return (req, res, next) => {
+        // A função 'protect' já colocou o usuário em req.user
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({
+                status: 'fail',
+                message: 'Você não tem permissão para realizar esta ação.' // 403 Forbidden
+            });
+        }
+        next();
+    };
+};
