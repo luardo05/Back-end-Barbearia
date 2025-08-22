@@ -1,6 +1,7 @@
 const Appointment = require('../models/Appointment');
 const Service = require('../models/Service');
 const notificationService = require('./notificationService');// Usaremos para notificar o ADM
+const { getIO } = require('../../socketManager');
 
 // Lógica para criar um agendamento
 const bookAppointment = async (clienteId, servicoId, data) => {
@@ -33,13 +34,14 @@ const bookAppointment = async (clienteId, servicoId, data) => {
         data: startTime,
     });
 
-    // 4. Criar uma notificação para os administradores usando nosso serviço centralizado
-    // Esta é a linha que você vai "descomentar" e substituir
-    const clientUser = await User.findById(clienteId).select('nome'); // Busca o nome do cliente
-    const clientName = clientUser ? clientUser.nome : 'Um cliente';
-    await notificationService.createNotificationForAdmins(
-        `Novo agendamento recebido de ${clientName} para o serviço "${service.nome}".`
-    );
+    // EMISSÃO DO EVENTO SOCKET.IO
+    const io = getIO();
+    const clientUser = await User.findById(clienteId).select('nome');
+    // Emitimos o evento para a sala 'admins'
+    io.to('admins').emit('new_appointment', {
+        message: `Novo agendamento de ${clientUser.nome} para ${service.nome}.`,
+        appointment: newAppointment
+    });
 
     return newAppointment;
 };
@@ -70,7 +72,16 @@ exports.updateAppointmentStatus = async (appointmentId, status) => {
     if (!appointment) {
         throw new Error('Agendamento não encontrado.');
     }
-    // Aqui também poderíamos criar uma notificação para o cliente sobre a mudança de status
+
+    // EMISSÃO DO EVENTO SOCKET.IO
+    const io = getIO();
+    const clientId = appointment.cliente.toString();
+    // Emitimos o evento para a sala privada do cliente
+    io.to(clientId).emit('status_update', {
+        message: `O status do seu agendamento foi atualizado para: ${status}`,
+        appointment: appointment
+    });
+
     return appointment;
 };
 
