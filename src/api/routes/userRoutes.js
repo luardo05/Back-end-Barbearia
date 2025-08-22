@@ -1,23 +1,21 @@
-const express = require('express');
-const router = express.Router();
-const { createUser} = require('../controllers/userController');
+    const express = require('express');
+    const userController = require('../controllers/userController');
+    const { protect, restrictTo } = require('../../middleware/authMiddleware');
 
-// Rotas de usuários
+    const router = express.Router();
 
+    // A partir deste ponto, todas as rotas exigem que o usuário esteja logado (protect)
+    // e que seja um administrador (restrictTo).
+    router.use(protect);
+    router.use(restrictTo('admin'));
 
-// Criar usuário
-router.post('/', createUser);
+    router.route('/')
+        .get(userController.getAllUsers)
+        .post(userController.adminCreateUser);
 
-// Listar todos os usuários
-router.get("/", getAllUsers);
+    router.route('/:id')
+        .get(userController.getUserById)
+        .patch(userController.updateUser) // Usando PATCH para atualizações parciais
+        .delete(userController.deleteUser);
 
-// Buscar usuário por ID
-router.get("/:id", getUserById);
-
-// Atualizar usuário
-router.put("/:id", updateUser);
-
-// Deletar usuário
-router.delete("/:id", deleteUser);
-
-module.exports = router;
+    module.exports = router;
