@@ -15,8 +15,8 @@ exports.adminCreateUser = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
     try {
-        const users = await userService.getAllUsers();
-        res.status(200).json({ status: 'success', results: users.length, data: { users } });
+        // const users = await userService.getAllUsers();
+        res.status(200).json(res.paginatedResults);
     } catch (error) {
         res.status(500).json({ status: 'fail', message: 'Erro ao buscar usuários.' });
     }

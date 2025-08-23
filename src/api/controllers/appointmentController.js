@@ -38,8 +38,9 @@ exports.getMyAppointments = async (req, res) => {
 // Admin busca todos os agendamentos
 exports.getAllAppointments = async (req, res) => {
     try {
-        const appointments = await appointmentService.getAllAppointments();
-        res.status(200).json({ status: 'success', results: appointments.length, data: { appointments } });
+        // const appointments = await appointmentService.getAllAppointments();
+        // res.status(200).json(res.paginatedResults);
+        res.status(200).json(res.paginatedResults);
     } catch (error) {
         res.status(500).json({ status: 'fail', message: 'Erro ao buscar agendamentos.' });
     }
