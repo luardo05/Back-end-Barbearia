@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Appointment = require('../models/Appointment');
 const Service = require('../models/Service');
+const Notification = require('../models/Notification');
 const notificationService = require('./notificationService');// Usaremos para notificar o ADM
 const { getIO } = require('../../socketManager');
 
@@ -35,12 +36,18 @@ const bookAppointment = async (clienteId, servicoId, data) => {
         data: startTime,
     });
 
-    // EMISSÃO DO EVENTO SOCKET.IO
-    const io = getIO();
+    // --- LÓGICA DE NOTIFICAÇÃO PARA ADMINS ---
     const clientUser = await User.findById(clienteId).select('nome');
-    // Emitimos o evento para a sala 'admins'
+    const clientName = clientUser ? clientUser.nome : 'Um cliente';
+    const messageForAdmin = `Novo agendamento recebido de ${clientName} para o serviço "${service.nome}".`;
+
+    // 4.1 Persiste a notificação no banco de dados para os admins
+    await notificationService.createNotificationForAdmins(messageForAdmin);
+    
+    // 4.2 Emite o evento de socket para os admins online
+    const io = getIO();
     io.to('admins').emit('new_appointment', {
-        message: `Novo agendamento de ${clientUser.nome} para ${service.nome}.`,
+        message: messageForAdmin,
         appointment: newAppointment
     });
 
@@ -74,12 +81,20 @@ exports.updateAppointmentStatus = async (appointmentId, status) => {
         throw new Error('Agendamento não encontrado.');
     }
 
-    // EMISSÃO DO EVENTO SOCKET.IO
-    const io = getIO();
+    // --- LÓGICA DE NOTIFICAÇÃO PARA O CLIENTE ---
     const clientId = appointment.cliente.toString();
-    // Emitimos o evento para a sala privada do cliente
+    const messageForClient = `O status do seu agendamento foi atualizado para: ${status.toUpperCase()}`;
+
+    // 1. Persiste a notificação no banco de dados para o cliente
+    await Notification.create({
+        destinatario: clientId,
+        mensagem: messageForClient,
+    });
+    
+    // 2. Emite o evento de socket para o cliente se ele estiver online
+    const io = getIO();
     io.to(clientId).emit('status_update', {
-        message: `O status do seu agendamento foi atualizado para: ${status}`,
+        message: messageForClient,
         appointment: appointment
     });
 
@@ -100,5 +115,13 @@ exports.cancelAppointmentByUser = async (appointmentId, userId) => {
 
     appointment.status = 'cancelado';
     await appointment.save();
+
+    // BÔNUS: Notificar o admin sobre o cancelamento
+    const clientUser = await User.findById(userId).select('nome');
+    const messageForAdmin = `O cliente ${clientUser.nome} cancelou seu agendamento.`;
+    await notificationService.createNotificationForAdmins(messageForAdmin);
+    const io = getIO();
+    io.to('admins').emit('appointment_cancelled', { message: messageForAdmin });
+    
     return appointment;
 };
