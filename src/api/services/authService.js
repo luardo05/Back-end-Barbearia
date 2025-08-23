@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 
 
 // Função auxiliar para assinar o token JWT
-const signToken = (id) => {
+exports.signToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRES_IN
     });
@@ -38,6 +38,6 @@ exports.loginUser = async (email, password) => {
     }
 
     // 3. Se tudo estiver ok, gerar e retornar o token
-    const token = signToken(user._id);
+    const token = exports.signToken(user._id);
     return token;
 };
