@@ -1,3 +1,4 @@
+const User = require('../models/User');
 const Appointment = require('../models/Appointment');
 const Service = require('../models/Service');
 const notificationService = require('./notificationService');// Usaremos para notificar o ADM
