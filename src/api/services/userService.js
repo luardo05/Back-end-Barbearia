@@ -8,10 +8,10 @@ exports.createUser = async (userData) => {
 };
 
 // READ ALL
-exports.getAllUsers = async () => {
-    // O select('-senha') no controller era bom, mas o model já faz isso com 'select: false'.
-    return await User.find();
-};
+// exports.getAllUsers = async () => {
+//     // O select('-senha') no controller era bom, mas o model já faz isso com 'select: false'.
+//     return await User.find();
+// };
 
 // READ ONE
 exports.getUserById = async (id) => {
@@ -46,3 +46,4 @@ exports.deleteUser = async (id) => {
     }
     return null; // Sucesso
 };
+
