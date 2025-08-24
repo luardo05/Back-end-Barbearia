@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const { getIO } = require('../../socketManager');
 
 /**
  * Busca todos os usuários administradores e cria uma notificação para cada um deles.
@@ -63,4 +64,61 @@ exports.markAsRead = async (notificationId, userId) => {
     }
 
     return notification;
+};
+
+/**
+ * Verifica os aniversariantes do dia, cria notificações persistentes
+ * e envia notificações em tempo real se estiverem online.
+ */
+exports.sendBirthdayNotifications = async () => {
+    console.log('⏰ Executando verificação de aniversários...');
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1; // getMonth() é 0-11
+    const currentDay = today.getDate();
+
+    try {
+        // Usa a pipeline de agregação do MongoDB para encontrar os aniversariantes
+        // de forma eficiente, sem precisar buscar todos os usuários.
+        const aniversariantes = await User.aggregate([
+            {
+                $match: {
+                    $expr: {
+                        $and: [
+                            { $eq: [{ $month: '$dataNascimento' }, currentMonth] },
+                            { $eq: [{ $dayOfMonth: '$dataNascimento' }, currentDay] }
+                        ]
+                    }
+                }
+            }
+        ]);
+
+        if (aniversariantes.length === 0) {
+            console.log('Nenhum aniversariante hoje.');
+            return;
+        }
+
+        console.log(`🎂 Encontrado(s) ${aniversariantes.length} aniversariante(s) hoje!`);
+
+        const io = getIO();
+
+        for (const user of aniversariantes) {
+            const message = `Feliz aniversário, ${user.nome}! 🎉 Use o cupom ANIVERSARIO10 para 10% de desconto hoje.`;
+
+            // 1. Cria a notificação persistente no banco de dados
+            await Notification.create({
+                destinatario: user._id,
+                mensagem: message
+            });
+
+            // 2. Envia a notificação em tempo real se o usuário estiver online
+            io.to(user._id.toString()).emit('new_notification', { message });
+
+            // 3. (Opcional) Notifica os admins
+            await exports.createNotificationForAdmins(`Hoje é o aniversário de ${user.nome}.`);
+            io.to('admins').emit('info_notification', { message: `Lembrete: Hoje é o aniversário de ${user.nome}.` });
+        }
+
+    } catch (error) {
+        console.error('Erro ao processar notificações de aniversário:', error);
+    }
 };

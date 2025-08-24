@@ -6,6 +6,7 @@ const helmet = require('helmet'); // <-- Importa o Helmet
 const morgan = require('morgan'); // <-- Importa o Morgan
 const connectDB = require('./config/db'); // <-- Importa nossa função de conexão
 const { configureCloudinary } = require('./config/cloudinaryConfig');
+const cron = require('node-cron');
 
 // IMPORTAR ROTAS
 const authRoutes = require('./api/routes/authRoutes');
@@ -14,8 +15,11 @@ const serviceRoutes = require('./api/routes/serviceRoutes');
 const appointmentRoutes = require('./api/routes/appointmentRoutes');
 const transactionRoutes = require('./api/routes/transactionRoutes');
 const notificationRoutes = require('./api/routes/notificationRoutes');
+const notificationService = require('./api/services/notificationService');
 const dashboardRoutes = require('./api/routes/dashboardRoutes');
 const availabilityRoutes = require('./api/routes/availabilityRoutes');
+
+
 
 // 2. CONFIGURAÇÃO INICIAL
 dotenv.config({ path: './.env' }); // Carrega as variáveis de ambiente
@@ -53,6 +57,14 @@ app.get('/', (req, res) => {
     });
 });
 
+// --- AGENDADOR DE TAREFAS (CRON JOB) ---
+// Sintaxe: (segundo minuto hora dia-do-mês mês dia-da-semana)
+// '0 9 * * *' = "Às 09:00, todos os dias"
+cron.schedule('37 18 * * *', () => {
+    notificationService.sendBirthdayNotifications();
+}, {
+    timezone: "America/Sao_Paulo" // É importante definir um fuso horário
+});
 
 // 5. INICIALIZAÇÃO DO SERVIDOR
 const http = require('http');
