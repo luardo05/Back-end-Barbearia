@@ -9,12 +9,13 @@ const router = express.Router();
 
 // Middleware condicional para paginação
 const conditionalPagination = (req, res, next) => {
-    // Se a query string 'paginated' for 'false', pula o middleware de paginação
     if (req.query.paginated === 'false') {
         return next();
     }
-    // Caso contrário, executa o middleware de paginação normalmente
-    return paginate(User)(req, res, next);
+    // Define as opções de ordenação
+    const sortOptions = { nome: 1 }; // Ordenar por nome, ascendente
+    // Passa as opções para o middleware
+    return paginate(User, null, sortOptions)(req, res, next);
 };
 
 // A partir deste ponto, todas as rotas exigem que o usuário esteja logado (protect)

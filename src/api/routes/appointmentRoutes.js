@@ -27,7 +27,8 @@ const conditionalAppointmentPagination = (req, res, next) => {
         { path: 'cliente', select: 'nome' },
         { path: 'servico', select: 'nome' }
     ];
-    return paginate(Appointment, populateOptions)(req, res, next);
+    const sortOptions = { data: -1 };
+    return paginate(Appointment, populateOptions, sortOptions)(req, res, next);
 };
 
 router.route('/')

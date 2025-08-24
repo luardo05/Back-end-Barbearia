@@ -51,7 +51,7 @@ exports.deleteUser = async (id) => {
 };
 
 exports.findAllUsers = async () => {
-    return await User.find();
+    return await User.find().sort({ nome: 1 });
 };
 
 exports.updateProfilePhoto = async (userId, fileBuffer) => {
