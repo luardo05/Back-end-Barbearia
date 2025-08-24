@@ -60,7 +60,7 @@ app.get('/', (req, res) => {
 // --- AGENDADOR DE TAREFAS (CRON JOB) ---
 // Sintaxe: (segundo minuto hora dia-do-mês mês dia-da-semana)
 // '0 9 * * *' = "Às 09:00, todos os dias"
-cron.schedule('37 18 * * *', () => {
+cron.schedule('0 19 * * *', () => {
     notificationService.sendBirthdayNotifications();
 }, {
     timezone: "America/Sao_Paulo" // É importante definir um fuso horário

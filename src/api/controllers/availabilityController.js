@@ -62,8 +62,6 @@ exports.setAvailability = async (req, res) => {
 
 exports.getAvailableSlots = async (req, res) => {
     try {
-        console.log('Recebido em /availability/slots:', req.query); // Pode remover este log agora
-
         // --- CORREÇÃO APLICADA AQUI ---
         // 'data' foi renomeado para 'date' para corresponder à query string.
         const { date, serviceId } = req.query;

@@ -32,11 +32,31 @@ const bookAppointment = async (clienteId, servicoId, data) => {
         throw new Error('Este horário já está ocupado. Por favor, escolha outro.');
     }
 
-    // 3. Se não houver conflito, criar o agendamento
+    // --- NOVA LÓGICA DE DESCONTO DE ANIVERSÁRIO ---
+    const cliente = await User.findById(clienteId);
+    const hoje = new Date();
+    const aniversario = new Date(cliente.dataNascimento);
+
+    let discountApplied = { amount: 0, reason: null };
+
+    // Verifica se o desconto está ativado e se é o aniversário do cliente
+    if (process.env.BIRTHDAY_DISCOUNT_ENABLED === 'true' &&
+        hoje.getMonth() === aniversario.getMonth() &&
+        hoje.getDate() === aniversario.getDate()) {
+        
+        const precoOriginal = await serviceService.getPrecoParaData(servicoId, data);
+        const discountPercentage = parseFloat(process.env.BIRTHDAY_DISCOUNT_PERCENTAGE) / 100;
+        
+        discountApplied.amount = precoOriginal * discountPercentage;
+        discountApplied.reason = `Desconto de Aniversário (${process.env.BIRTHDAY_DISCOUNT_PERCENTAGE}%)`;
+    }
+    
+    // 3. Se não houver conflito, criar o agendamento com o desconto aplicado
     const newAppointment = await Appointment.create({
         cliente: clienteId,
         servico: servicoId,
         data: startTime,
+        discount: discountApplied // <-- Salva o desconto no agendamento
     });
 
     // --- LÓGICA DE NOTIFICAÇÃO PARA ADMINS ---
@@ -79,33 +99,32 @@ exports.getAllAppointments = async () => {
 
 // Atualiza o status de um agendamento (admin)
 exports.updateAppointmentStatus = async (appointmentId, status) => {
-    // 1. Buscamos o agendamento ANTES de qualquer alteração
     const appointment = await Appointment.findById(appointmentId).populate('servico').populate('cliente');
     if (!appointment) {
         throw new Error('Agendamento não encontrado.');
     }
 
-    const oldStatus = appointment.status; // <-- Guardamos o status antigo
+    const oldStatus = appointment.status;
     const newStatus = status;
 
-    // Se o status não mudou, não faz nada
     if (oldStatus === newStatus) {
         return appointment;
     }
 
-    // 2. Atualiza o status
     appointment.status = newStatus;
     await appointment.save();
 
-    // 3. --- LÓGICA FINANCEIRA DE TRANSAÇÕES ---
-    const precoFinal = await serviceService.getPrecoParaData(appointment.servico._id, appointment.data);
-
+    // --- LÓGICA FINANCEIRA DE TRANSAÇÕES (CORRIGIDA) ---
+    
     // CASO 1: Agendamento se tornou CONCLUÍDO
-    // Cria uma transação positiva (crédito)
     if (newStatus === 'concluido') {
+        // Chama a função exportada correta, passando o objeto 'user'
+        const precoInfo = await serviceService.getPrecoDetalhado(appointment.servico._id, appointment.data, appointment.cliente);
+        const precoFinal = precoInfo.precoFinal; // Extrai o preço final já com desconto
+
         await Transaction.create({
             valor: precoFinal,
-            descricao: `Conclusão do serviço: ${appointment.servico.nome}`,
+            descricao: `Conclusão do serviço: ${appointment.servico.nome}${appointment.discount.amount > 0 ? ` (Desconto: R$ ${appointment.discount.amount.toFixed(2)})` : ''}`,
             tipo: 'online',
             agendamento: appointment._id,
             cliente: appointment.cliente._id
@@ -113,23 +132,35 @@ exports.updateAppointmentStatus = async (appointmentId, status) => {
     }
 
     // CASO 2: Agendamento ERA concluído e foi alterado (ESTORNO)
-    // Cria uma transação negativa (débito) para anular a anterior
     if (oldStatus === 'concluido' && newStatus !== 'concluido') {
+        // Chama a função correta novamente para garantir o valor exato a ser estornado
+        const precoInfo = await serviceService.getPrecoDetalhado(appointment.servico._id, appointment.data, appointment.cliente);
+        const precoFinal = precoInfo.precoFinal;
+
         await Transaction.create({
-            valor: -precoFinal, // <-- Valor negativo
+            valor: -precoFinal,
             descricao: `Estorno de serviço (${newStatus}): ${appointment.servico.nome}`,
             tipo: 'online',
             agendamento: appointment._id,
             cliente: appointment.cliente._id
         });
     }
-
-    // --- LÓGICA DE NOTIFICAÇÃO (já existente) ---
+    // --- LÓGICA DE NOTIFICAÇÃO (sem alterações) ---
     const clientId = appointment.cliente._id.toString();
-    const message = `O status do seu agendamento foi atualizado para: ${status.toUpperCase()}`;
-    await Notification.create({ destinatario: clientId, mensagem: message });
+    const message = `O status do seu agendamento foi atualizado para: ${newStatus.toUpperCase()}`;
+    
+    // Salva a notificação no banco para o histórico do cliente
+    await Notification.create({
+        destinatario: clientId,
+        mensagem: message,
+    });
+    
+    // Emite o evento em tempo real para o cliente, se ele estiver online
     const io = getIO();
-    io.to(clientId).emit('status_update', { message: message, appointment: appointment });
+    io.to(clientId).emit('status_update', {
+        message: message,
+        appointment: appointment
+    });
 
     return appointment;
 };

@@ -45,7 +45,7 @@ exports.deleteService = async (req, res) => {
     }
 };
 
-exports.getPrecoDinamico = async (req, res) => { 
+exports.getPrecoDinamico = async (req, res) => {
     try {
         const { id } = req.params;
         const { date } = req.query;
@@ -55,14 +55,18 @@ exports.getPrecoDinamico = async (req, res) => {
         }
 
         const dataCalculo = new Date(date);
-        const preco = await serviceService.getPrecoParaData(id, dataCalculo);
+        // const preco = await serviceService.getPrecoParaData(id, dataCalculo);
 
-        res.status(200).json({
-            status: 'success',
-            data: {
-                preco: preco
-            }
-        });
+        // res.status(200).json({
+        //     status: 'success',
+        //     data: {
+        //         preco: preco
+        //     }
+        // });
+
+        const precoDetalhado = await serviceService.getPrecoDetalhado(id, dataCalculo, req.user);
+        res.status(200).json({ status: 'success', data: precoDetalhado });
+
     } catch (error) {
         res.status(404).json({ status: 'fail', message: error.message });
     }

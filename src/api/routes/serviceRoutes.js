@@ -9,12 +9,12 @@ const router = express.Router();
 // --- Rotas Públicas (qualquer um pode ver os serviços) ---
 router.get('/', serviceController.getAllServices);
 router.get('/:id', serviceController.getServiceById);
-router.get('/:id/price', serviceController.getPrecoDinamico);
-
 
 // --- Rotas Protegidas (Apenas para Administradores) ---
 // A partir deste ponto, todas as rotas abaixo exigem login (protect)
 router.use(protect);
+router.get('/:id/price', serviceController.getPrecoDinamico);
+
 router.use(restrictTo('admin'));
 
 router.patch('/:id/image', protect, restrictTo('admin'), upload.single('imagem'), serviceController.updateServiceImage);

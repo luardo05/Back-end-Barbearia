@@ -23,6 +23,10 @@ const AppointmentSchema = new mongoose.Schema({
     notas: { // Campo opcional para o cliente adicionar alguma observação
         type: String,
         trim: true
+    },
+    discount: {
+        amount: { type: Number, default: 0 },
+        reason: { type: String }
     }
 }, {
     timestamps: true

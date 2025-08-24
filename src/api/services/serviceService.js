@@ -45,21 +45,44 @@ exports.deleteService = async (id) => {
     return null;
 };
 
-
-// LÓGICA DE PREÇO DINÂMICO
-exports.getPrecoParaData = async (serviceId, data) => {
+const getPrecoParaData = async (serviceId, data) => {
     const service = await Service.findById(serviceId);
     if (!service) {
         throw new Error('Serviço não encontrado.');
     }
+
     const diaDaSemana = data.getDay();
     const regraEncontrada = service.regrasDePreco.find(
         (regra) => regra.diaDaSemana === diaDaSemana
     );
-    if (regraEncontrada) {
-        return regraEncontrada.precoEspecial;
+
+    return regraEncontrada ? regraEncontrada.precoEspecial : service.precoBase;
+};
+
+// para aniversário
+exports.getPrecoDetalhado = async (serviceId, date, user) => {
+    // --- CORREÇÃO APLICADA AQUI ---
+    // Chama a função auxiliar local, não 'exports.getPrecoParaData'
+    const precoBase = await getPrecoParaData(serviceId, date);
+    
+    let discount = { amount: 0, reason: null };
+    const hoje = new Date();
+    const aniversario = new Date(user.dataNascimento);
+
+    if (process.env.BIRTHDAY_DISCOUNT_ENABLED === 'true' &&
+        hoje.getMonth() === aniversario.getMonth() &&
+        hoje.getDate() === aniversario.getDate()) {
+        
+        const discountPercentage = parseFloat(process.env.BIRTHDAY_DISCOUNT_PERCENTAGE) / 100;
+        discount.amount = precoBase * discountPercentage;
+        discount.reason = `Desconto de Aniversário (${process.env.BIRTHDAY_DISCOUNT_PERCENTAGE}%)`;
     }
-    return service.precoBase;
+
+    return {
+        precoOriginal: precoBase,
+        desconto: discount,
+        precoFinal: precoBase - discount.amount
+    };
 };
 
 exports.updateServiceImage = async (serviceId, fileBuffer) => {
