@@ -1,5 +1,8 @@
 // File: src/api/services/serviceService.js
 const Service = require('../models/Service');
+const { cloudinary } = require('../../config/cloudinaryConfig');
+
+const bufferToDataURI = (buffer) => `data:image/png;base64,${buffer.toString('base64')}`;
 
 // CREATE
 exports.createService = async (serviceData) => {
@@ -57,4 +60,14 @@ exports.getPrecoParaData = async (serviceId, data) => {
         return regraEncontrada.precoEspecial;
     }
     return service.precoBase;
+};
+
+exports.updateServiceImage = async (serviceId, fileBuffer) => {
+    const fileDataUri = bufferToDataURI(fileBuffer);
+
+    const uploadResult = await cloudinary.uploader.upload(fileDataUri, {
+        folder: 'barbearia/servicos'
+    });
+
+    return await Service.findByIdAndUpdate(serviceId, { imageUrl: uploadResult.secure_url }, { new: true });
 };

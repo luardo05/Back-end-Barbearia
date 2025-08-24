@@ -67,3 +67,15 @@ exports.getPrecoDinamico = async (req, res) => {
         res.status(404).json({ status: 'fail', message: error.message });
     }
 };
+
+exports.updateServiceImage = async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ status: 'fail', message: 'Nenhum arquivo enviado.' });
+    }
+    try {
+        const service = await serviceService.updateServiceImage(req.params.id, req.file.buffer);
+        res.status(200).json({ status: 'success', data: { service } });
+    } catch (error) {
+        res.status(500).json({ status: 'fail', message: error.message });
+    }
+};

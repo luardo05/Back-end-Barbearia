@@ -34,7 +34,7 @@ const UserSchema = new mongoose.Schema({
     },
     fotoUrl: {
         type: String,
-        default: 'url_da_imagem_padrao_aqui' // Link para uma imagem de avatar padrão
+        default: 'https://via.placeholder.com/150' // Link para uma imagem de avatar padrão
     }
 }, {
     timestamps: true // Adiciona os campos createdAt e updatedAt automaticamente

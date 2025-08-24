@@ -36,9 +36,9 @@ const ServiceSchema = new mongoose.Schema({
         type: Number,
         required: [true, 'A duração é obrigatória.']
     },
-    imagemUrl: {
+    imageUrl: { // Renomeado de imagemUrl para imageUrl (padrão camelCase)
         type: String,
-        default: 'url_da_imagem_de_servico_padrao_aqui'
+        default: 'https://via.placeholder.com/300x200'
     }
 }, {
     timestamps: true

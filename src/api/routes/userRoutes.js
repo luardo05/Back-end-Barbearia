@@ -2,6 +2,7 @@ const express = require('express');
 const userController = require('../controllers/userController');
 const { protect, restrictTo } = require('../../middleware/authMiddleware');
 const { paginate } = require('../../middleware/paginationMiddleware'); // <-- Importa
+const upload = require('../../middleware/upload');
 const User = require('../models/User');
 
 const router = express.Router();
@@ -19,6 +20,9 @@ const conditionalPagination = (req, res, next) => {
 // A partir deste ponto, todas as rotas exigem que o usuário esteja logado (protect)
 // e que seja um administrador (restrictTo).
 router.use(protect);
+
+router.patch('/updateMyPhoto', protect, upload.single('foto'), userController.updateMyProfilePhoto);
+
 router.use(restrictTo('admin'));
 
 router.route('/')
@@ -27,7 +31,7 @@ router.route('/')
 
 router.route('/:id')
     .get(userController.getUserById)
-    .patch(userController.updateUser) // Usando PATCH para atualizações parciais
+    .patch(userController.updateUser)
     .delete(userController.deleteUser);
 
 module.exports = router;

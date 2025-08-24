@@ -2,6 +2,7 @@
 const express = require('express');
 const serviceController = require('../controllers/serviceController');
 const { protect, restrictTo } = require('../../middleware/authMiddleware');
+const upload = require('../../middleware/upload');
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ router.get('/:id/price', serviceController.getPrecoDinamico);
 router.use(protect);
 router.use(restrictTo('admin'));
 
+router.patch('/:id/image', protect, restrictTo('admin'), upload.single('imagem'), serviceController.updateServiceImage);
 router.post('/', serviceController.createService);
 router.patch('/:id', serviceController.updateService);
 router.delete('/:id', serviceController.deleteService);

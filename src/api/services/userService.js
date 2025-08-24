@@ -1,4 +1,7 @@
 const User = require('../models/User');
+const { cloudinary } = require('../../config/cloudinaryConfig');
+
+const bufferToDataURI = (buffer) => `data:image/png;base64,${buffer.toString('base64')}`;
 
 // CREATE
 exports.createUser = async (userData) => {
@@ -49,4 +52,16 @@ exports.deleteUser = async (id) => {
 
 exports.findAllUsers = async () => {
     return await User.find();
+};
+
+exports.updateProfilePhoto = async (userId, fileBuffer) => {
+    const fileDataUri = bufferToDataURI(fileBuffer);
+
+    // Faz o upload para a pasta 'perfis' no Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(fileDataUri, {
+        folder: 'barbearia/perfis'
+    });
+
+    // Atualiza o documento do usuário com a URL segura retornada pelo Cloudinary
+    return await User.findByIdAndUpdate(userId, { fotoUrl: uploadResult.secure_url }, { new: true });
 };

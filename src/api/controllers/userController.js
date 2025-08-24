@@ -64,3 +64,16 @@ exports.deleteUser = async (req, res) => {
         res.status(404).json({ status: 'fail', message: error.message });
     }
 };
+
+exports.updateMyProfilePhoto = async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ status: 'fail', message: 'Nenhum arquivo enviado.' });
+    }
+    try {
+        // req.user.id vem do middleware 'protect'
+        const user = await userService.updateProfilePhoto(req.user.id, req.file.buffer);
+        res.status(200).json({ status: 'success', data: { user } });
+    } catch (error) {
+        res.status(500).json({ status: 'fail', message: error.message });
+    }
+};
