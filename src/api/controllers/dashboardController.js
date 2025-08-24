@@ -18,19 +18,25 @@ const getDateRange = (period) => {
 
 exports.getSummary = async (req, res) => {
     try {
-        const period = req.query.period || 'week'; // Padrão para 'week' se não for fornecido
-        const { startDate, endDate } = getDateRange(period);
+        // O frontend agora enviará as datas de início e fim
+        let { startDate, endDate } = req.query;
 
-        const financialSummary = await dashboardService.getFinancialSummary(startDate, endDate);
-        const appointmentSummary = await dashboardService.getAppointmentSummary(startDate, endDate);
+        // Se as datas não forem fornecidas, define um padrão (ex: últimos 7 dias)
+        if (!startDate || !endDate) {
+            endDate = new Date();
+            startDate = new Date();
+            startDate.setDate(endDate.getDate() - 7);
+        } else {
+            // Garante que as strings de data sejam convertidas para objetos Date
+            startDate = new Date(startDate);
+            endDate = new Date(endDate);
+        }
+
+        const summaryData = await dashboardService.getDashboardData(startDate, endDate);
 
         res.status(200).json({
             status: 'success',
-            data: {
-                period,
-                financialSummary,
-                appointmentSummary
-            }
+            data: summaryData
         });
 
     } catch (error) {

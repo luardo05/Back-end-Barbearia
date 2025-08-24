@@ -8,6 +8,77 @@ const Appointment = require('../models/Appointment');
  * @param {Date} endDate - A data de fim do período.
  * @returns {Promise<Object>} Um objeto com os dados agregados.
  */
+
+exports.getDashboardData = async (startDate, endDate) => {
+    // Usaremos Promise.all para executar as consultas em paralelo para melhor performance
+    const [financialSummary, appointmentSummary, recentTransactions, recentAppointments] = await Promise.all([
+
+        // 1. Consulta de resumo financeiro (Agregação)
+        Transaction.aggregate([
+            { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+            { $group: {
+                _id: '$tipo',
+                totalRevenue: { $sum: '$valor' },
+                totalTransactions: { $sum: 1 }
+            }}
+        ]),
+
+        // 2. Consulta de resumo de agendamentos (Agregação)
+        Appointment.aggregate([
+            { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+            { $group: {
+                _id: '$status',
+                count: { $sum: 1 }
+            }}
+        ]),
+
+        // 3. Busca de transações detalhadas para a tabela
+        Transaction.find({ createdAt: { $gte: startDate, $lte: endDate } })
+            .populate('cliente', 'nome')
+            .sort({ createdAt: -1 }), // Ordena da mais recente para a mais antiga
+
+        // 4. Busca de agendamentos detalhados para a tabela
+        Appointment.find({ createdAt: { $gte: startDate, $lte: endDate } })
+            .populate('cliente', 'nome')
+            .populate('servico', 'nome')
+            .sort({ data: -1 })
+    ]);
+
+    // --- Processa os resultados das agregações (código similar ao que já tínhamos) ---
+    let totalRevenue = 0;
+    const breakdown = { online: { revenue: 0, count: 0 }, presencial: { revenue: 0, count: 0 } };
+    financialSummary.forEach(item => {
+        if (item._id) {
+            breakdown[item._id] = { revenue: item.totalRevenue, count: item.totalTransactions };
+            totalRevenue += item.totalRevenue;
+        }
+    });
+
+    const appointmentCounts = { pendente: 0, confirmado: 0, cancelado: 0, concluido: 0, total: 0 };
+    let totalAppointments = 0;
+    appointmentSummary.forEach(item => {
+        if (item._id) {
+            appointmentCounts[item._id] = item.count;
+            totalAppointments += item.count;
+        }
+    });
+    appointmentCounts.total = totalAppointments;
+
+    // Retorna um único objeto com todos os dados que o frontend precisa
+    return {
+        summary: {
+            totalRevenue,
+            totalTransactions: breakdown.online.count + breakdown.presencial.count,
+            revenueBreakdown: breakdown,
+            appointmentCounts
+        },
+        tables: {
+            transactions: recentTransactions,
+            appointments: recentAppointments
+        }
+    };
+};
+
 exports.getFinancialSummary = async (startDate, endDate) => {
     const summary = await Transaction.aggregate([
         // Estágio 1: Filtrar as transações para o período desejado.

@@ -5,6 +5,9 @@ const Notification = require('../models/Notification');
 const notificationService = require('./notificationService');// Usaremos para notificar o ADM
 const { getIO } = require('../../socketManager');
 
+const Transaction = require('../models/Transaction'); // <-- Importa o modelo Transaction
+const serviceService = require('./serviceService'); // <-- Importa o serviceService para usar a função de preço
+
 // Lógica para criar um agendamento
 const bookAppointment = async (clienteId, servicoId, data) => {
     // 1. Obter a duração do serviço para calcular o horário final
@@ -76,27 +79,38 @@ exports.getAllAppointments = async () => {
 
 // Atualiza o status de um agendamento (admin)
 exports.updateAppointmentStatus = async (appointmentId, status) => {
-    const appointment = await Appointment.findByIdAndUpdate(appointmentId, { status }, { new: true });
+    // Primeiro, buscamos o agendamento para ter acesso aos seus dados
+    const appointment = await Appointment.findById(appointmentId).populate('servico').populate('cliente');
     if (!appointment) {
         throw new Error('Agendamento não encontrado.');
     }
 
-    // --- LÓGICA DE NOTIFICAÇÃO PARA O CLIENTE ---
-    const clientId = appointment.cliente.toString();
-    const messageForClient = `O status do seu agendamento foi atualizado para: ${status.toUpperCase()}`;
+    // Atualiza o status
+    appointment.status = status;
+    await appointment.save();
 
-    // 1. Persiste a notificação no banco de dados para o cliente
-    await Notification.create({
-        destinatario: clientId,
-        mensagem: messageForClient,
-    });
-    
-    // 2. Emite o evento de socket para o cliente se ele estiver online
+    // --- NOVA LÓGICA DE NEGÓCIO ---
+    // Se o agendamento foi marcado como 'concluido', cria a transação correspondente.
+    if (status === 'concluido') {
+        // 1. Calcula o preço correto para a data em que o serviço ocorreu.
+        const precoFinal = await serviceService.getPrecoParaData(appointment.servico._id, appointment.data);
+
+        // 2. Cria a transação.
+        await Transaction.create({
+            valor: precoFinal,
+            descricao: `Serviço: ${appointment.servico.nome}`,
+            tipo: 'online', // Assumimos que agendamentos do sistema são 'online'
+            agendamento: appointment._id,
+            cliente: appointment.cliente._id
+        });
+    }
+
+    // --- LÓGICA DE NOTIFICAÇÃO (já existente) ---
+    const clientId = appointment.cliente._id.toString();
+    const message = `O status do seu agendamento foi atualizado para: ${status.toUpperCase()}`;
+    await Notification.create({ destinatario: clientId, mensagem: message });
     const io = getIO();
-    io.to(clientId).emit('status_update', {
-        message: messageForClient,
-        appointment: appointment
-    });
+    io.to(clientId).emit('status_update', { message: message, appointment: appointment });
 
     return appointment;
 };
