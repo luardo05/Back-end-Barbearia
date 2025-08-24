@@ -10,20 +10,21 @@ const Appointment = require('../models/Appointment');
  */
 
 exports.getDashboardData = async (startDate, endDate) => {
-    // Usaremos Promise.all para executar as consultas em paralelo para melhor performance
-    const [financialSummary, appointmentSummary, recentTransactions, recentAppointments] = await Promise.all([
+    // Usamos Promise.all para executar todas as consultas de forma concorrente,
+    // o que melhora significativamente a performance.
+    const [summaryData, appointmentStatusSummary, dailyRevenue, dailyAppointments, totalEstornos] = await Promise.all([
 
-        // 1. Consulta de resumo financeiro (Agregação)
+        // Consulta 1: Agregação de resumo financeiro geral (para os "cards").
         Transaction.aggregate([
             { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
             { $group: {
-                _id: '$tipo',
-                totalRevenue: { $sum: '$valor' },
+                _id: '$tipo', // Agrupa por 'online' vs 'presencial'
+                totalRevenue: { $sum: '$valor' }, // Soma todos os valores (incluindo negativos de estornos)
                 totalTransactions: { $sum: 1 }
             }}
         ]),
-
-        // 2. Consulta de resumo de agendamentos (Agregação)
+        
+        // Consulta 2: Resumo de contagem de agendamentos POR STATUS (para os cards).
         Appointment.aggregate([
             { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
             { $group: {
@@ -32,49 +33,115 @@ exports.getDashboardData = async (startDate, endDate) => {
             }}
         ]),
 
-        // 3. Busca de transações detalhadas para a tabela
-        Transaction.find({ createdAt: { $gte: startDate, $lte: endDate } })
-            .populate('cliente', 'nome')
-            .sort({ createdAt: -1 }), // Ordena da mais recente para a mais antiga
+        // Consulta 3: Faturamento agrupado POR DIA (para o gráfico de receita).
+        Transaction.aggregate([
+            { $match: { createdAt: { $gte: startDate, $lte: endDate }, valor: { $gt: 0 } } }, // Considera apenas entradas de dinheiro (créditos)
+            { $group: {
+                // Agrupa pela data, formatada como "YYYY-MM-DD" para consistência
+                _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "UTC" } },
+                dailyRevenue: { $sum: '$valor' }
+            }},
+            { $sort: { _id: 1 } } // Ordena os resultados por data, do mais antigo para o mais novo
+        ]),
+        
+        // Consulta 4: Contagem de agendamentos agrupados POR DIA (para o gráfico de agendamentos).
+        Appointment.aggregate([
+            { $match: { createdAt: { $gte: startDate, $lte: endDate } } }, // Filtra por data de CRIAÇÃO do agendamento
+            { $group: {
+                _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "UTC" } },
+                dailyCount: { $sum: 1 }
+            }},
+            { $sort: { _id: 1 } }
+        ]),
 
-        // 4. Busca de agendamentos detalhados para a tabela
-        Appointment.find({ createdAt: { $gte: startDate, $lte: endDate } })
-            .populate('cliente', 'nome')
-            .populate('servico', 'nome')
-            .sort({ data: -1 })
+        // Consulta 5: Agregação para somar apenas os valores negativos (estornos).
+        Transaction.aggregate([
+            { $match: { createdAt: { $gte: startDate, $lte: endDate }, valor: { $lt: 0 } } }, // Filtra apenas valores < 0
+            { $group: {
+                _id: null, // Agrupa todos os resultados em um único documento
+                totalValue: { $sum: '$valor' }
+            }}
+        ])
     ]);
 
-    // --- Processa os resultados das agregações (código similar ao que já tínhamos) ---
+    // --- Processa os resultados para os CARDS de resumo ---
+    
+    // Processamento financeiro
     let totalRevenue = 0;
+
+    const estornosValue = totalEstornos.length > 0 ? Math.abs(totalEstornos[0].totalValue) : 0;
+    
+    // Calcula a receita bruta (faturamento líquido + valor estornado)
+    const receitaBruta = totalRevenue + estornosValue;
+
     const breakdown = { online: { revenue: 0, count: 0 }, presencial: { revenue: 0, count: 0 } };
-    financialSummary.forEach(item => {
-        if (item._id) {
+    summaryData.forEach(item => {
+        if (item._id) { // Garante que não processe grupos nulos
             breakdown[item._id] = { revenue: item.totalRevenue, count: item.totalTransactions };
             totalRevenue += item.totalRevenue;
         }
     });
 
+    // Calcula a taxa (porcentagem) de faturamento
+    const onlinePercentage = totalRevenue > 0 ? ((breakdown.online.revenue / totalRevenue) * 100).toFixed(1) : 0;
+    const presencialPercentage = totalRevenue > 0 ? ((breakdown.presencial.revenue / totalRevenue) * 100).toFixed(1) : 0;
+
+    // Processamento dos status de agendamento
     const appointmentCounts = { pendente: 0, confirmado: 0, cancelado: 0, concluido: 0, total: 0 };
-    let totalAppointments = 0;
-    appointmentSummary.forEach(item => {
-        if (item._id) {
+    appointmentStatusSummary.forEach(item => {
+        if (appointmentCounts.hasOwnProperty(item._id)) {
             appointmentCounts[item._id] = item.count;
-            totalAppointments += item.count;
+            appointmentCounts.total += item.count;
         }
     });
-    appointmentCounts.total = totalAppointments;
 
-    // Retorna um único objeto com todos os dados que o frontend precisa
+    // --- Processa os dados para os GRÁFICOS ---
+    const chartLabels = [];
+    const revenueData = [];
+    const appointmentData = [];
+    
+    // Itera por cada dia no intervalo de datas solicitado.
+    let currentDate = new Date(startDate);
+    // Adiciona um dia ao endDate para garantir que o último dia seja incluído no loop
+    let loopEndDate = new Date(endDate);
+    loopEndDate.setDate(loopEndDate.getDate() + 1);
+
+    while (currentDate < loopEndDate) {
+        const dateString = currentDate.toISOString().split('T')[0];
+        
+        // Formata a label para o eixo X do gráfico (ex: "15/08")
+        chartLabels.push(new Date(currentDate).toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: '2-digit' }));
+        
+        // Encontra o faturamento para o dia atual. Se não houver, o valor é 0.
+        const revenueForDay = dailyRevenue.find(d => d._id === dateString);
+        revenueData.push(revenueForDay ? revenueForDay.dailyRevenue : 0);
+        
+        // Encontra a contagem de agendamentos para o dia atual. Se não houver, o valor é 0.
+        const appointmentsForDay = dailyAppointments.find(d => d._id === dateString);
+        appointmentData.push(appointmentsForDay ? appointmentsForDay.dailyCount : 0);
+        
+        // Avança para o próximo dia
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Retorna o objeto final que o controller enviará como resposta.
     return {
         summary: {
             totalRevenue,
-            totalTransactions: breakdown.online.count + breakdown.presencial.count,
+            receitaBruta,
+            totalEstornos: estornosValue,
+            totalTransactions: (breakdown.online.count || 0) + (breakdown.presencial.count || 0),
             revenueBreakdown: breakdown,
+            revenuePercentage: {
+                online: onlinePercentage,
+                presencial: presencialPercentage
+            },
             appointmentCounts
         },
-        tables: {
-            transactions: recentTransactions,
-            appointments: recentAppointments
+        charts: {
+            labels: chartLabels,
+            revenue: revenueData,
+            appointments: appointmentData
         }
     };
 };
