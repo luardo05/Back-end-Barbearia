@@ -1,16 +1,18 @@
 // File: src/api/middleware/paginationMiddleware.js
 
 // O middleware agora aceita um segundo argumento opcional 'populateOptions'
-exports.paginate = (model, populateOptions = null, sortOptions = null) => async (req, res, next) => {
+exports.paginate = (model, populateOptions = null, sortOptions = null, filterCallback = null) => async (req, res, next) => {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const skip = (page - 1) * limit;
 
     try {
-        const totalDocuments = await model.countDocuments();
-        
-        let query = model.find().skip(skip).limit(limit);
+        const filter = filterCallback ? filterCallback(req) : {};
 
+        // O filtro é aplicado tanto na contagem de documentos quanto na busca.
+        const totalDocuments = await model.countDocuments(filter);
+        
+        let query = model.find(filter).skip(skip).limit(limit);
         // --- LÓGICA DEFENSIVA ---
         // Apenas tenta popular se 'populateOptions' foi realmente fornecido.
         if (populateOptions) {
