@@ -74,32 +74,51 @@ exports.getAppointmentsForUser = async (userId) => {
 
 // Busca TODOS os agendamentos (para o admin)
 exports.getAllAppointments = async () => {
-    return await Appointment.find().populate('cliente', 'nome').populate('servico');
+    return await Appointment.find().populate('cliente', 'nome').populate('servico').sort({ data: -1 });;
 };
 
 // Atualiza o status de um agendamento (admin)
 exports.updateAppointmentStatus = async (appointmentId, status) => {
-    // Primeiro, buscamos o agendamento para ter acesso aos seus dados
+    // 1. Buscamos o agendamento ANTES de qualquer alteração
     const appointment = await Appointment.findById(appointmentId).populate('servico').populate('cliente');
     if (!appointment) {
         throw new Error('Agendamento não encontrado.');
     }
 
-    // Atualiza o status
-    appointment.status = status;
+    const oldStatus = appointment.status; // <-- Guardamos o status antigo
+    const newStatus = status;
+
+    // Se o status não mudou, não faz nada
+    if (oldStatus === newStatus) {
+        return appointment;
+    }
+
+    // 2. Atualiza o status
+    appointment.status = newStatus;
     await appointment.save();
 
-    // --- NOVA LÓGICA DE NEGÓCIO ---
-    // Se o agendamento foi marcado como 'concluido', cria a transação correspondente.
-    if (status === 'concluido') {
-        // 1. Calcula o preço correto para a data em que o serviço ocorreu.
-        const precoFinal = await serviceService.getPrecoParaData(appointment.servico._id, appointment.data);
+    // 3. --- LÓGICA FINANCEIRA DE TRANSAÇÕES ---
+    const precoFinal = await serviceService.getPrecoParaData(appointment.servico._id, appointment.data);
 
-        // 2. Cria a transação.
+    // CASO 1: Agendamento se tornou CONCLUÍDO
+    // Cria uma transação positiva (crédito)
+    if (newStatus === 'concluido') {
         await Transaction.create({
             valor: precoFinal,
-            descricao: `Serviço: ${appointment.servico.nome}`,
-            tipo: 'online', // Assumimos que agendamentos do sistema são 'online'
+            descricao: `Conclusão do serviço: ${appointment.servico.nome}`,
+            tipo: 'online',
+            agendamento: appointment._id,
+            cliente: appointment.cliente._id
+        });
+    }
+
+    // CASO 2: Agendamento ERA concluído e foi alterado (ESTORNO)
+    // Cria uma transação negativa (débito) para anular a anterior
+    if (oldStatus === 'concluido' && newStatus !== 'concluido') {
+        await Transaction.create({
+            valor: -precoFinal, // <-- Valor negativo
+            descricao: `Estorno de serviço (${newStatus}): ${appointment.servico.nome}`,
+            tipo: 'online',
             agendamento: appointment._id,
             cliente: appointment.cliente._id
         });

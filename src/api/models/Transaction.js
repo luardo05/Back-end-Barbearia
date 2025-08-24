@@ -4,21 +4,22 @@ const TransactionSchema = new mongoose.Schema({
     valor: {
         type: Number,
         required: [true, 'O valor da transação é obrigatório.']
+        // O valor agora pode ser positivo ou negativo
     },
     descricao: {
         type: String,
-        required: [true, 'A descrição da transação é obrigatória.'] // Ex: "Corte Masculino", "Venda de Produto"
+        required: [true, 'A descrição da transação é obrigatória.']
     },
     tipo: {
         type: String,
-        enum: ['online', 'presencial'], // Essencial para o dashboard
+        enum: ['online', 'presencial'],
         required: true
     },
-    agendamento: { // Link opcional para o agendamento que gerou esta transação
+    agendamento: {
         type: mongoose.Schema.ObjectId,
         ref: 'Appointment'
     },
-    cliente: { // Link opcional para o usuário do sistema
+    cliente: {
         type: mongoose.Schema.ObjectId,
         ref: 'User'
     }
