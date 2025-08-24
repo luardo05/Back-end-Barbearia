@@ -15,7 +15,7 @@ const appointmentRoutes = require('./api/routes/appointmentRoutes');
 const transactionRoutes = require('./api/routes/transactionRoutes');
 const notificationRoutes = require('./api/routes/notificationRoutes');
 const dashboardRoutes = require('./api/routes/dashboardRoutes');
-const disponibilidadeRoutes = require('./api/routes/disponibilidadeRoutes'); 
+const availabilityRoutes = require('./api/routes/availabilityRoutes');
 
 // 2. CONFIGURAÇÃO INICIAL
 dotenv.config({ path: './.env' }); // Carrega as variáveis de ambiente
@@ -44,7 +44,7 @@ app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/transactions', transactionRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
-app.use('/api/v1/disponibilidade', disponibilidadeRoutes);
+app.use('/api/v1/availability', availabilityRoutes);
 
 app.get('/', (req, res) => {
     res.status(200).json({
