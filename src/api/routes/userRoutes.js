@@ -6,13 +6,23 @@ const User = require('../models/User');
 
 const router = express.Router();
 
+// Middleware condicional para paginação
+const conditionalPagination = (req, res, next) => {
+    // Se a query string 'paginated' for 'false', pula o middleware de paginação
+    if (req.query.paginated === 'false') {
+        return next();
+    }
+    // Caso contrário, executa o middleware de paginação normalmente
+    return paginate(User)(req, res, next);
+};
+
 // A partir deste ponto, todas as rotas exigem que o usuário esteja logado (protect)
 // e que seja um administrador (restrictTo).
 router.use(protect);
 router.use(restrictTo('admin'));
 
 router.route('/')
-    .get(paginate(User), userController.getAllUsers)
+    .get(conditionalPagination, userController.getAllUsers)
     .post(userController.adminCreateUser);
 
 router.route('/:id')

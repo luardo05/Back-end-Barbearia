@@ -14,9 +14,25 @@ exports.adminCreateUser = async (req, res) => {
 };
 
 exports.getAllUsers = async (req, res) => {
+    // Verifica se a resposta já foi preparada pelo middleware de paginação
+    if (res.paginatedResults) {
+        return res.status(200).json(res.paginatedResults);
+    }
+
+    // Se não foi paginada, busca todos os usuários através do serviço
     try {
-        // const users = await userService.getAllUsers();
-        res.status(200).json(res.paginatedResults);
+        const users = await userService.findAllUsers();
+        res.status(200).json({
+            status: 'success',
+            // --- CORREÇÃO APLICADA AQUI ---
+            // Inclui um objeto 'pagination' padrão para consistência.
+            pagination: {
+                currentPage: 1,
+                totalPages: 1,
+                totalDocuments: users.length
+            },
+            data: users
+        });
     } catch (error) {
         res.status(500).json({ status: 'fail', message: 'Erro ao buscar usuários.' });
     }

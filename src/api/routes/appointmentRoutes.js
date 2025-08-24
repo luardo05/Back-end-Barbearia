@@ -6,11 +6,6 @@ const Appointment = require('../models/Appointment');
 
 const router = express.Router();
 
-const populateOptions = [
-    { path: 'cliente', select: 'nome' },
-    { path: 'servico', select: 'nome' }
-];
-
 // A partir daqui, TODAS as rotas de agendamento exigem que o usuário esteja logado.
 router.use(protect);
 
@@ -22,7 +17,21 @@ router.patch('/:id/cancel', appointmentController.cancelMyAppointment);
 // --- Rotas Apenas para Administradores ---
 router.use(restrictTo('admin'));
 
-router.get('/', paginate(Appointment, populateOptions), appointmentController.getAllAppointments);
+// Middleware condicional para paginação de agendamentos
+const conditionalAppointmentPagination = (req, res, next) => {
+    if (req.query.paginated === 'false') {
+        return next();
+    }
+    // Define as opções de populate para os agendamentos
+    const populateOptions = [
+        { path: 'cliente', select: 'nome' },
+        { path: 'servico', select: 'nome' }
+    ];
+    return paginate(Appointment, populateOptions)(req, res, next);
+};
+
+router.route('/')
+    .get(conditionalAppointmentPagination, appointmentController.getAllAppointments);
 router.post('/admin-create', appointmentController.adminCreateAppointment);
 router.patch('/:id/status', appointmentController.updateAppointmentStatus);
 

@@ -47,3 +47,6 @@ exports.deleteUser = async (id) => {
     return null; // Sucesso
 };
 
+exports.findAllUsers = async () => {
+    return await User.find();
+};

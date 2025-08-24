@@ -37,10 +37,23 @@ exports.getMyAppointments = async (req, res) => {
 
 // Admin busca todos os agendamentos
 exports.getAllAppointments = async (req, res) => {
+    // Verifica se a resposta já foi preparada pelo middleware de paginação
+    if (res.paginatedResults) {
+        return res.status(200).json(res.paginatedResults);
+    }
+
+    // Se não foi paginada, busca todos os agendamentos através do serviço
     try {
-        // const appointments = await appointmentService.getAllAppointments();
-        // res.status(200).json(res.paginatedResults);
-        res.status(200).json(res.paginatedResults);
+        const appointments = await appointmentService.getAllAppointments();
+        res.status(200).json({
+            pagination: {
+                currentPage: 1,
+                totalPages: 1,
+                totalDocuments: appointments.length
+            },
+            // Popula os dados dentro de 'data'
+            data: appointments
+        });
     } catch (error) {
         res.status(500).json({ status: 'fail', message: 'Erro ao buscar agendamentos.' });
     }
