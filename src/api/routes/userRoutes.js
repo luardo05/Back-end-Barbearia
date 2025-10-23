@@ -1,6 +1,6 @@
 const express = require('express');
 const userController = require('../controllers/userController');
-const { protect, restrictTo } = require('../../middleware/authMiddleware');
+const { protect, restrictTo, isOwnerOrAdmin } = require('../../middleware/authMiddleware');
 const { paginate } = require('../../middleware/paginationMiddleware'); // <-- Importa
 const upload = require('../../middleware/upload');
 const User = require('../models/User');
@@ -23,6 +23,7 @@ const conditionalPagination = (req, res, next) => {
 router.use(protect);
 
 router.patch('/updateMyPhoto', protect, upload.single('foto'), userController.updateMyProfilePhoto);
+router.patch('/:id', userController.updateUser);
 
 router.use(restrictTo('admin'));
 
@@ -32,7 +33,6 @@ router.route('/')
 
 router.route('/:id')
     .get(userController.getUserById)
-    .patch(userController.updateUser)
     .delete(userController.deleteUser);
 
 module.exports = router;
