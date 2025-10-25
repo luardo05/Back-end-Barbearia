@@ -89,7 +89,7 @@ exports.createAppointmentByAdmin = async (clienteId, servicoId, data) => {
 
 // Busca os agendamentos de um cliente específico
 exports.getAppointmentsForUser = async (userId) => {
-    return await Appointment.find({ cliente: userId }).populate('servico');
+    return await Appointment.find({ cliente: userId }).populate('servico').sort({ data: -1 });
 };
 
 // Busca TODOS os agendamentos (para o admin)
